@@ -1,0 +1,97 @@
+{% extends 'layouts/base-fullscreen.html' %}
+{% load i18n static admin_argon %}
+{% block content %}
+    <main class="main-content mt-0">
+        <section>
+            <div class="page-header min-vh-100">
+                <div class="container">
+                    <div class="row justify-content-center align-items-center">
+                        <div class="col-xl-4 col-lg-5 col-md-7 col-sm-10 mx-auto">
+                            <div class="card shadow-lg border-0 rounded-4">
+                                <div class="card-body px-4 py-5">
+                                    <div class="text-center mb-4">
+                                        <h3 class="fw-bold">Chào mừng Newer !</h3>
+                                        <p class="text-muted mb-0">Vui lòng đăng nhập để tiếp tục</p>
+                                    </div>
+                                    <form method="post" action="{{ app_path }}">
+                                        {% csrf_token %}
+                                        <div class="form-floating mb-3">
+                                            <input
+                                                    type="text"
+                                                    class="form-control"
+                                                    id="username"
+                                                    placeholder="Tên đăng nhập"
+                                                    name="username"
+                                                    required>
+                                            <label for="username">Tên đăng nhập</label>
+                                        </div>
+
+                                        <div class="form-floating mb-3">
+                                            <input
+                                                    type="password"
+                                                    class="form-control"
+                                                    id="password"
+                                                    placeholder="Mật khẩu"
+                                                    name="password"
+                                                    required>
+                                            <label for="password">Mật khẩu</label>
+                                        </div>
+
+                                        <button type="submit" class="btn btn-primary w-100 py-2">
+                                            Đăng nhập
+                                        </button>
+                                    </form>
+                                </div>
+                            </div>
+                        </div>
+              <div class="col-lg-6 d-none d-lg-flex align-items-stretch" style="height: 100vh;">
+                            <div class="position-relative bg-gradient-primary w-100 border-radius-lg d-flex flex-column justify-content-start align-items-center overflow-hidden text-white p-5"
+                                 style="background-image: url({% static 'img/cms_login.png' %});
+                                         background-color: #0d6efd;
+                                         background-size: cover;
+                                         background-repeat: no-repeat;
+                                         background-position: center;
+                                         background-blend-mode: overlay;">
+                                <h4 class="mt-5 text-white font-weight-bolder position-relative">AI CHATBOT NEWWAVE SOLUTIONS</h4>
+                                <p class="text-white position-relative">Chatbot công ty Newwave hỗ trợ tra cứu thông tin nộ bộ, tra cứu thông tin sản phẩm, dịch vụ, hỗ trợ khách hàng và nhân viên nội bộ.</p>
+                            </div>
+                        </div>
+
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+{% endblock content %}
+
+{% block extrascript %}
+    <script type="application/javascript">
+        {% if form.username.errors %}
+            notification.danger("{{ form.username.errors }}", 'top', 'right');
+        {% endif %}
+        {% if form.password.errors %}
+            notification.danger("{{ form.password.errors }}", 'top', 'right');
+        {% endif %}
+
+        {% if user.is_authenticated %}
+            var msg = "You are authenticated as {{ username }}, but are not authorized to " +
+                "access this page.Would you like to login to a different account ?"
+            notification.warning(msg, 'top', 'right');
+        {% endif %}
+
+        {% if form.errors and not form.non_field_errors %}
+            {% if form.errors.items|length == 1 %}
+                notification.warning("{% trans "Please correct the error below." %}", 'top', 'right');
+            {% else %}
+                notification.warning("{% trans "Please correct the errors below." %}", 'top', 'right');
+            {% endif %}
+        {% endif %}
+
+        {% if form.non_field_errors %}
+            {% for error in form.non_field_errors %}
+                notification.warning("{{ error|clean_text }}", 'top', 'right');
+            {% endfor %}
+        {% endif %}
+    </script>
+{% endblock %}

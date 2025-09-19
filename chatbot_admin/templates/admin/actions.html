@@ -1,0 +1,29 @@
+{% load i18n static %}
+{% block extrastyle %}
+    <link rel="stylesheet" type="text/css" href="{% static "css/forms.css" %}">
+{% endblock %}
+
+<div class="actions form-group">
+    {% block actions %}
+        {% block actions-form %}
+            {% for field in action_form %}
+                {% if field.label %}<label>
+                    <div class="actions-header">
+                        <h6 class="text-uppercase">
+                            {% blocktrans with action_index=action_index|default:0 %}
+                                Hành động
+                            {% endblocktrans %}
+                        </h6>
+                    </div>
+                {% endif %}
+                {{ field }}
+                {% if field.label %}</label>{% endif %}
+            {% endfor %}
+        {% endblock %}
+        {% block actions-submit %}
+            <button type="submit" class="btn btn-fill btn-sm btn-primary btn-outline-primary mb-1" title="{% trans "Run the selected action" %}" name="index" value="{{ action_index|default:0 }}">
+                {% trans "Xác nhận" %}
+            </button>
+        {% endblock %}
+    {% endblock %}
+</div>

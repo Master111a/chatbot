@@ -1,0 +1,231 @@
+{% load i18n static %}
+
+<div class="filter-dropdown-wrapper" id="filter-{{ title|slugify }}">
+    <button type="button" class="filter-dropdown-toggle btn btn-light border">
+        <span class="filter-title-text">{{ title }}</span>
+        <i class="fas fa-chevron-down filter-arrow ms-auto"></i>
+    </button>
+    <div class="filter-dropdown-menu shadow-sm">
+        {% if choices|length > 7 %}
+        <div class="filter-search-wrapper">
+            <input type="text" class="form-control form-control-sm filter-search-input" placeholder="{% trans 'Tìm kiếm...' %}">
+        </div>
+        {% endif %}
+        <ul class="filter-options-list">
+            {% for choice in choices %}
+            <li class="filter-option-item {% if choice.selected %}selected{% endif %}" data-text="{{ choice.display|lower }}">
+                <a href="{{ choice.query_string|iriencode }}" class="filter-option-link">
+                    {{ choice.display }}
+                    {% if choice.selected %}<i class="fas fa-check selected-check"></i>{% endif %}
+                </a>
+            </li>
+            {% endfor %}
+            <li class="filter-option-item no-results-message" style="display: none;">{% trans "Không có kết quả" %}</li>
+        </ul>
+    </div>
+</div>
+
+<style>
+/* Styles for the filter dropdown component */
+.filter-dropdown-wrapper {
+    position: relative;
+    display: inline-block;
+    min-width: 180px; /* Adjust as needed */
+    font-size: 0.9rem;
+}
+
+.filter-dropdown-toggle {
+    width: 100%;
+    text-align: left;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0.45rem 0.85rem;
+    background-color: #fff;
+    border-color: #ced4da;
+    transition: background-color 0.15s ease-in-out, border-color 0.15s ease-in-out;
+}
+.filter-dropdown-toggle:hover {
+    background-color: #f8f9fa;
+}
+.filter-dropdown-toggle.active {
+    border-color: #86b7fe;
+    box-shadow: 0 0 0 0.25rem rgba(13, 110, 253, 0.25);
+}
+
+.filter-title-text {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    max-width: 80%; /* Adjust to prevent overflow with active dot */
+}
+
+.filter-active-dot {
+    color: #0d6efd; /* Bootstrap primary color */
+    font-size: 0.8em;
+}
+
+.filter-arrow {
+    transition: transform 0.2s ease-in-out;
+    font-size: 0.7em;
+    color: #6c757d;
+}
+
+.filter-dropdown-wrapper.open .filter-arrow {
+    transform: rotate(180deg);
+}
+
+.filter-dropdown-menu {
+    position: absolute;
+    top: 100%;
+    left: 0;
+    z-index: 1000;
+    display: none;
+    min-width: 100%;
+    max-width: 280px; /* Max width for dropdown */
+    padding: 0.5rem 0;
+    margin: 0.125rem 0 0;
+    font-size: 0.9rem;
+    color: #212529;
+    text-align: left;
+    list-style: none;
+    background-color: #fff;
+    background-clip: padding-box;
+    border: 1px solid rgba(0,0,0,.15);
+    border-radius: 0.375rem; /* Bootstrap 5 border-radius */
+}
+
+.filter-dropdown-wrapper.open .filter-dropdown-menu {
+    display: block;
+}
+
+.filter-search-wrapper {
+    padding: 0.25rem 0.75rem;
+    margin-bottom: 0.25rem;
+}
+.filter-search-input {
+    font-size: 0.85rem;
+}
+
+.filter-options-list {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    max-height: 200px; /* Scrollable list */
+    overflow-y: auto;
+}
+
+.filter-option-item {
+    /* display: block; */ /* Handled by link */
+}
+
+.filter-option-link {
+    display: block;
+    padding: 0.35rem 1rem;
+    clear: both;
+    font-weight: 400;
+    color: #212529;
+    text-align: inherit;
+    text-decoration: none;
+    white-space: nowrap;
+    background-color: transparent;
+    border: 0;
+    position: relative;
+}
+
+.filter-option-item.selected .filter-option-link {
+    color: #0d6efd;
+    font-weight: 500;
+    /* background-color: #e9ecef; */
+}
+.filter-option-item:not(.selected) .filter-option-link:hover,
+.filter-option-item:not(.selected) .filter-option-link:focus {
+    color: #1e2125;
+    background-color: #f8f9fa;
+}
+
+
+.selected-check {
+    position: absolute;
+    right: 1rem;
+    top: 50%;
+    transform: translateY(-50%);
+    color: #0d6efd;
+    font-size: 0.8em;
+}
+.no-results-message {
+    padding: 0.35rem 1rem;
+    color: #6c757d;
+    text-align: center;
+}
+</style>
+
+<script>
+if (typeof initializeFilterDropdowns === 'undefined') {
+    const initializeFilterDropdowns = () => {
+        document.querySelectorAll('.filter-dropdown-wrapper').forEach(wrapper => {
+            const toggleButton = wrapper.querySelector('.filter-dropdown-toggle');
+            const menu = wrapper.querySelector('.filter-dropdown-menu');
+            const searchInput = wrapper.querySelector('.filter-search-input');
+            const optionsItems = wrapper.querySelectorAll('.filter-option-item:not(.no-results-message)');
+            const noResultsMessage = wrapper.querySelector('.no-results-message');
+
+            toggleButton.addEventListener('click', (event) => {
+                event.stopPropagation(); // Prevent click from bubbling to document
+                // Close other open dropdowns
+                document.querySelectorAll('.filter-dropdown-wrapper.open').forEach(openWrapper => {
+                    if (openWrapper !== wrapper) {
+                        openWrapper.classList.remove('open');
+                        openWrapper.querySelector('.filter-dropdown-toggle').classList.remove('active');
+                    }
+                });
+                // Toggle current dropdown
+                wrapper.classList.toggle('open');
+                toggleButton.classList.toggle('active');
+            });
+
+            if (searchInput) {
+                searchInput.addEventListener('keyup', () => {
+                    const searchTerm = searchInput.value.toLowerCase();
+                    let visibleCount = 0;
+                    optionsItems.forEach(item => {
+                        const text = item.dataset.text || item.textContent.toLowerCase();
+                        if (text.includes(searchTerm)) {
+                            item.style.display = '';
+                            visibleCount++;
+                        } else {
+                            item.style.display = 'none';
+                        }
+                    });
+                    if (noResultsMessage) {
+                        noResultsMessage.style.display = visibleCount === 0 ? '' : 'none';
+                    }
+                });
+                // Prevent menu from closing when clicking search input
+                searchInput.addEventListener('click', (event) => {
+                    event.stopPropagation();
+                });
+            }
+        });
+
+        // Close dropdowns when clicking outside
+        document.addEventListener('click', (event) => {
+            document.querySelectorAll('.filter-dropdown-wrapper.open').forEach(wrapper => {
+                if (!wrapper.contains(event.target)) {
+                    wrapper.classList.remove('open');
+                    wrapper.querySelector('.filter-dropdown-toggle').classList.remove('active');
+                }
+            });
+        });
+    };
+
+    // Initialize on DOMContentLoaded
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', initializeFilterDropdowns);
+    } else {
+        initializeFilterDropdowns(); // Or if DOM is already loaded
+    }
+    // Mark as initialized
+    window.initializeFilterDropdowns = true;
+}
+</script>

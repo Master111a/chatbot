@@ -1,0 +1,45 @@
+<fieldset class="module aligned {{ fieldset.classes }} card mb-4 shadow-sm border-0">
+    {% if fieldset.name %}
+        <div class="card-header bg-light text-white rounded-top">
+            <h5 class="mb-0">{{ fieldset.name }}</h5>
+        </div>
+    {% endif %}
+    <div class="card-body">
+        {% if fieldset.description %}
+            <div class="description text-muted mb-3">{{ fieldset.description|safe }}</div>
+        {% endif %}
+
+        {% for line in fieldset %}
+            <div class="row mb-3">
+                <div class="{% if line.fields.0 in 'last_login, date_joined' %}col-md-6{% else %}col-md-12{% endif %}">
+                    <div class="mb-2{% if line.fields and line.errors %} errors{% endif %}{% if not line.has_visible_field %} d-none{% endif %}{% for field in line %}{% if field.field.name %} field-{{ field.field.name }}{% endif %}{% endfor %}">
+                        {% if line.fields %}{{ line.errors }}{% endif %}
+                        {% for field in line %}
+                            {% if not line.fields and not field.is_readonly %}
+                                {{ field.errors }}
+                            {% endif %}
+                            {% if field.is_checkbox %}
+                                <div class="form-check form-switch mb-0">
+                                    <div class="d-flex align-items-center">
+                                         <input class="form-check-input" type="checkbox" id="{{ field.field.id_for_label }}" name="{{ field.field.name }}" {% if field.field.value %}checked{% endif %}>
+                                         <label class="form-check-label text-dark text-lg ms-2" for="{{ field.field.id_for_label }}">{{ field.label_tag }}</label>
+                                    </div>
+                                    {% if field.field.help_text %}
+                                        <div class="help text-secondary small mt-1 ms-5">{{ field.field.help_text|safe }}</div>
+                                    {% endif %}
+                                </div>
+                            {% else %}
+                                <label class="form-label fw-semibold">{{ field.label_tag }}</label>
+                                {% if field.is_readonly %}
+                                    <div class="readonly form-control-plaintext">{{ field.contents }}</div>
+                                {% else %}
+                                    {{ field.field }}
+                                {% endif %}
+                            {% endif %}
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+        {% endfor %}
+    </div>
+</fieldset>

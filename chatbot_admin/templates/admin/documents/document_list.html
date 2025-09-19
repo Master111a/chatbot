@@ -1,0 +1,162 @@
+{% extends "layouts/base.html" %}
+{% load i18n admin_urls static admin_list %}
+
+{% block overlay %}
+    <div class="min-height-300 bg-primary position-absolute w-100"></div>
+{% endblock overlay %}
+
+{% block content %}
+    <div class="table-settings mb-4 mx-3">
+        <div class="row align-items-center justify-content-between">
+            <div class="col col-md-8 col-lg-3 col-xl-8">
+                {% block search %}{% search_form cl %}{% endblock %}
+            </div>
+            <div class="d-block mb-4 mb-md-0 col-4 col-md-2">
+                <div class="btn-toolbar mb-2 mb-md-0">
+                    <div class="btn-group mt-5">
+                        <a href="{% url 'core:add_document' %}" class="btn btn-sm btn-success">
+                            <i class="fa fa-plus-circle"></i>
+                            {% blocktrans with cl.opts.verbose_name as name %}Add {{ name }}{% endblocktrans %}
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="container-fluid px-3">
+    {% if cl.has_filters %}
+        {% block filters %}
+            <div class="card card-body border-0 shadow mb-4">
+                <div class="d-flex align-items-center justify-content-between mb-3">
+                    <h5 class="mb-0">{% trans 'Filter' %}</h5>
+                </div>
+                <div class="d-flex flex-row gap-3 align-items-center flex-wrap">
+                    {% for spec in cl.filter_specs %}
+                        {% admin_list_filter cl spec %}
+                    {% endfor %}
+                </div>
+            </div>
+        {% endblock %}
+    {% endif %}
+
+    <div class="card card-body border-0 shadow mb-4">
+        {% block date_hierarchy %}
+            {% if cl.date_hierarchy %}{% date_hierarchy cl %}{% endif %}
+        {% endblock %}
+
+        <form id="document_list_form" method="post" {% if cl.formset and cl.formset.is_multipart %}
+              enctype="multipart/form-data"{% endif %} novalidate>
+            {% csrf_token %}
+
+            {% if cl.formset %}
+                <div>{{ cl.formset.management_form }}</div>
+            {% endif %}
+
+            <div class="table-wrapper table-responsive">
+                {% block result_list %}
+                    {% result_list cl %}
+                {% endblock %}
+
+                {% block pagination %}{% pagination cl %}{% endblock %}
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Modal xác nhận xóa -->
+<div class="modal fade" id="deleteDocumentModal" tabindex="-1" aria-labelledby="deleteDocumentModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="deleteDocumentModalLabel">Xác nhận xóa tài liệu</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                Bạn có chắc chắn muốn xóa tài liệu: <strong id="modalFileName"></strong> ?
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Hủy</button>
+                <button type="button" class="btn btn-danger" id="confirmDeleteBtn">Xóa</button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock content %}
+{% block scripts %}
+{{ block.super }}
+<script>
+    let deleteUrl = '';
+    let deleteCsrf = '';
+    let modal;
+
+    document.addEventListener('DOMContentLoaded', function() {
+        const modalEl = document.getElementById('deleteDocumentModal');
+        const confirmBtn = document.getElementById('confirmDeleteBtn');
+
+        modal = new bootstrap.Modal(modalEl, {
+            backdrop: 'static',
+            keyboard: false,
+            focus: false
+        });
+
+        // Click outside modal để đóng
+        modalEl.addEventListener('click', function(e) {
+            if (e.target === modalEl) {
+                modal.hide();
+            }
+        });
+
+        // Nút đóng modal
+        modalEl.querySelector('[data-bs-dismiss="modal"]').addEventListener('click', function() {
+            modal.hide();
+        });
+
+        modalEl.querySelector('.btn-secondary').addEventListener('click', function() {
+            modal.hide();
+        });
+
+        // Nút xóa với loading state
+        confirmBtn.addEventListener('click', function() {
+            // Hiển thị loading ngay lập tức
+            const originalText = confirmBtn.innerHTML;
+            confirmBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-2" role="status"></span>Đang xóa...';
+            confirmBtn.disabled = true;
+
+            fetch(deleteUrl, {
+                method: 'POST',
+                headers: {'X-CSRFToken': deleteCsrf},
+            })
+            .then(response => {
+                // Hiển thị thông báo ngay khi có response
+                if (response.ok) {
+                    window.toastManager.success('Tài liệu đã được xóa thành công!');
+                    // Đóng modal ngay lập tức
+                    modal.hide();
+                    // Reload sau delay ngắn để user thấy toast
+                    setTimeout(() => window.location.reload(), 500);
+                } else {
+                    // Reset button state nếu lỗi
+                    confirmBtn.innerHTML = originalText;
+                    confirmBtn.disabled = false;
+                    window.toastManager.error('Có lỗi xảy ra khi xóa tài liệu!');
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                // Reset button state
+                confirmBtn.innerHTML = originalText;
+                confirmBtn.disabled = false;
+                window.toastManager.error('Có lỗi xảy ra khi xóa tài liệu!');
+            });
+        });
+    });
+
+    function deleteDocument(url, csrfToken, fileName) {
+        deleteUrl = url;
+        deleteCsrf = csrfToken;
+        document.getElementById('modalFileName').textContent = fileName;
+        modal.show();
+    }
+</script>
+{% endblock scripts %}

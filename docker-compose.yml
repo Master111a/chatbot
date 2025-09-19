@@ -1,0 +1,392 @@
+services:
+  # Nginx service - COMMENTED
+  # nginx:
+  #   build: ./nginx
+  #   container_name: newwave-nginx
+  #   restart: always
+  #   ports:
+  #     - "${NGINX_EXPORT_PORT:-80}:80"
+  #   depends_on:
+  #     - frontend
+  #     - backend
+  #   networks:
+  #     - newwave-network
+
+  # Frontend service - COMMENTED
+  # frontend:
+  #   build: ./frontend
+  #   container_name: newwave-frontend
+  #   restart: always
+  #   ports:
+  #     - "${FE_EXPORT_PORT:-3000}:3000"
+  #   environment:
+  #     - ENV=${ENV:-dev}
+  #     - NEXT_PUBLIC_API_URL=${NEXT_PUBLIC_API_URL:-http://${BE_HOST}:${BE_EXPORT_PORT:-17002}}
+  #     - PORT=3000
+  #   volumes:
+  #     - ./frontend:/app
+  #     - ./logs/frontend:/app/logs
+  #     - /app/node_modules
+  #     - /app/.next
+  #   networks:
+  #     - newwave-network
+
+  # Backend service
+  backend:
+    build: ./backend
+    container_name: newwave-backend
+    restart: always
+    ports:
+      - "${BE_EXPORT_PORT:-17002}:8000"
+    environment:
+      - ENV=${ENV:-prod}
+      - WORKERS=${WORKERS:-2}
+      - WORKER_CLASS=${WORKER_CLASS:-uvicorn.workers.UvicornWorker}
+      - WORKER_CONNECTIONS=${WORKER_CONNECTIONS:-500}
+      - MAX_REQUESTS=${MAX_REQUESTS:-500}
+      - MAX_REQUESTS_JITTER=${MAX_REQUESTS_JITTER:-50}
+      - KEEPALIVE=${KEEPALIVE:-2}
+      - DATABASE_URL=postgresql://${PG_USER:-postgres}:${PG_PASSWORD:-postgres}@${PG_HOST:-db-postgres}:${PG_PORT:-5432}/${PG_DB:-newwave_chatbot}
+      - MILVUS_HOST=${MILVUS_HOST:-db-milvus}
+      - MILVUS_PORT=${MILVUS_PORT:-19530}
+      - MILVUS_USER=${MILVUS_USER:-root}
+      - MILVUS_PASSWORD=${MILVUS_PASSWORD:-milvus}
+      - MILVUS_DB=${MILVUS_DB:-newwave_chatbot}
+      - MILVUS_COLLECTION=${MILVUS_COLLECTION:-chatbot}
+      - MINIO_ENDPOINT=${MINIO_ENDPOINT:-newwave-minio:9000}
+      - MINIO_EXTERNAL_ENDPOINT=${MINIO_EXTERNAL_ENDPOINT:-http://${BE_HOST}:${MINIO_PORT:-9000}}
+      - MINIO_ACCESS_KEY=${MINIO_ACCESS_KEY:-minioadmin}
+      - MINIO_SECRET_KEY=${MINIO_SECRET_KEY:-minioadmin}
+      - MINIO_SECURE=${MINIO_SECURE:-false}
+      - MINIO_EXTERNAL_SECURE=${MINIO_EXTERNAL_SECURE:-false}
+      - MINIO_BUCKET_NAME=${MINIO_BUCKET_NAME:-newwave-documents}
+      - OLLAMA_BASE_URL=${OLLAMA_API_URL:-http://ollama:11434}
+      - SECRET_KEY=${SECRET_KEY:-your_secret_key}
+      - GEMINI_API_KEY=${GEMINI_API_KEY:-}
+      - GITLAB_CLIENT_ID=${GITLAB_CLIENT_ID:-}
+      - GITLAB_CLIENT_SECRET=${GITLAB_CLIENT_SECRET:-}
+      - GITLAB_REDIRECT_URI=${GITLAB_REDIRECT_URI:-http://${BE_HOST}:8000/auth/gitlab/callback}
+      - GITLAB_BASE_URL=${GITLAB_BASE_URL:-https://gitlab.com}
+      - REFLECTION_MODEL=${REFLECTION_MODEL:-qwen3:1.7b}
+      - SEMANTIC_ROUTER_MODEL=${SEMANTIC_ROUTER_MODEL:-qwen3:1.7b}
+      - RESPONSE_GENERATION_MODEL=${RESPONSE_GENERATION_MODEL:-qwen3:8b}
+      - FUNCTION_CALLING_MODEL=${FUNCTION_CALLING_MODEL:-qwen3:8b}
+      - DEFAULT_CHAT_MODEL=${DEFAULT_CHAT_MODEL:-qwen3:8b}
+      - TRANSFORMERS_CACHE=/app/model_cache
+      - HF_HOME=/app/model_cache
+      - DEFAULT_MAX_TOKENS=${DEFAULT_MAX_TOKENS:-4096}
+      - DEFAULT_RAG_MAX_TOKENS=${DEFAULT_RAG_MAX_TOKENS:-4096}
+      - GEMINI_DEFAULT_MAX_TOKENS=${GEMINI_DEFAULT_MAX_TOKENS:-4096}
+    volumes:
+      - ./backend:/app
+      - ./logs:/app/logs
+      - model-cache:/app/model_cache
+    depends_on:
+      postgres:
+        condition: service_healthy
+      milvus:
+        condition: service_healthy
+      # - ollama
+    networks:
+      - newwave-network
+    deploy:
+      resources:
+        limits:
+          cpus: '2.0'
+          memory: 2G
+        reservations:
+          cpus: '1.0'
+          memory: 1G
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://${BE_HOST}:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+
+  # PostgreSQL service
+  postgres:
+    image: postgres:15-alpine
+    container_name: ${PG_HOST:-db-postgres}
+    restart: always
+    environment:
+      - POSTGRES_USER=${PG_USER:-postgres}
+      - POSTGRES_PASSWORD=${PG_PASSWORD:-postgres}
+      - POSTGRES_DB=${PG_DB:-newwave_chatbot}
+    ports:
+      - "${DB_EXPORT_PORT:-17000}:5432"
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+      - ./postgres/db-init.sh:/docker-entrypoint-initdb.d/db-init.sh
+    networks:
+      - newwave-network
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 512M
+        reservations:
+          cpus: '0.25'
+          memory: 256M
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${PG_USER:-postgres} -d ${PG_DB:-newwave_chatbot}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+
+  # Etcd service
+  etcd:
+    image: quay.io/coreos/etcd:v3.5.5
+    container_name: newwave-etcd
+    restart: always
+    environment:
+      - ETCD_AUTO_COMPACTION_MODE=revision
+      - ETCD_AUTO_COMPACTION_RETENTION=1000
+      - ETCD_QUOTA_BACKEND_BYTES=4294967296
+      - ETCD_SNAPSHOT_COUNT=50000
+      - ETCD_HEARTBEAT_INTERVAL=100
+      - ETCD_ELECTION_TIMEOUT=1000
+      - ETCD_MAX_REQUEST_BYTES=33554432
+      - ETCD_STRICT_RECONFIG_CHECK=false
+    volumes:
+      - etcd-data:/etcd
+    command:
+      - etcd
+      - --advertise-client-urls=http://newwave-etcd:${ETCD_CLIENT_PORT:-2379}
+      - --listen-client-urls=http://0.0.0.0:${ETCD_CLIENT_PORT:-2379}
+      - --data-dir=/etcd
+      - --name=s1
+      - --initial-advertise-peer-urls=http://newwave-etcd:${ETCD_PEER_PORT:-2380}
+      - --listen-peer-urls=http://0.0.0.0:${ETCD_PEER_PORT:-2380}
+      - --initial-cluster=s1=http://newwave-etcd:${ETCD_PEER_PORT:-2380}
+      - --initial-cluster-token=tkn
+      - --initial-cluster-state=new
+      - --log-level=warn
+    ports:
+      - "${ETCD_CLIENT_PORT:-2379}:2379"
+      - "${ETCD_PEER_PORT:-2380}:2380"
+    networks:
+      - newwave-network
+    deploy:
+      resources:
+        limits:
+          cpus: '1.0'
+          memory: 1G
+        reservations:
+          cpus: '0.5'
+          memory: 512M
+    healthcheck:
+      test: ["CMD", "etcdctl", "endpoint", "health", "--endpoints=http://${BE_HOST}:2379"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+
+  # MinIO service
+  minio:
+    image: minio/minio:latest
+    container_name: newwave-minio
+    restart: always
+    environment:
+      - MINIO_ROOT_USER=${MINIO_ACCESS_KEY:-minioadmin}
+      - MINIO_ROOT_PASSWORD=${MINIO_SECRET_KEY:-minioadmin}
+      - MINIO_BROWSER_REDIRECT_URL=${MINIO_EXTERNAL_ENDPOINT:-http://${BE_HOST}:${MINIO_PORT:-9000}}
+      - MINIO_API_REQUESTS_MAX=5000
+      - MINIO_API_REQUESTS_DEADLINE=10s
+      - MINIO_STORAGE_CLASS_STANDARD=EC:0
+    volumes:
+      - minio-data:/data
+    ports:
+      - "${MINIO_PORT:-9000}:9000"
+      - "${MINIO_CONSOLE_PORT:-9001}:9001"
+    command: server --console-address ":9001" /data
+    networks:
+      - newwave-network
+    deploy:
+      resources:
+        limits:
+          cpus: '1.0'
+          memory: 1G
+        reservations:
+          cpus: '0.5'
+          memory: 512M
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://${BE_HOST}:9000/minio/health/live"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+
+  # MinIO initializer
+  minio-init:
+    build:
+      context: ./minio
+      dockerfile: Dockerfile
+    container_name: newwave-minio-init
+    environment:
+      - MINIO_HOST=${MINIO_HOST:-minio}
+      - MINIO_PORT=${MINIO_PORT:-9000}
+      - MINIO_ACCESS_KEY=${MINIO_ACCESS_KEY:-minioadmin}
+      - MINIO_SECRET_KEY=${MINIO_SECRET_KEY:-minioadmin}
+    depends_on:
+      minio:
+        condition: service_healthy
+    networks:
+      - newwave-network
+    restart: no
+
+  # Milvus service
+  milvus:
+    image: milvusdb/milvus:v2.4.10
+    container_name: ${MILVUS_HOST:-db-milvus}
+    restart: always
+    command: ["milvus", "run", "standalone"]
+    environment:
+      - ETCD_ENDPOINTS=newwave-etcd:2379
+      - MINIO_ADDRESS=newwave-minio:9000
+      - MINIO_ROOT_USER=${MINIO_ACCESS_KEY:-minioadmin}
+      - MINIO_ROOT_PASSWORD=${MINIO_SECRET_KEY:-minioadmin}
+    volumes:
+      - milvus-data:/var/lib/milvus
+      - ./logs/milvus:/var/lib/milvus/logs
+    ports:
+      - "${MILVUS_PORT:-19530}:19530"
+    depends_on:
+      etcd:
+        condition: service_healthy
+      minio:
+        condition: service_healthy
+    networks:
+      - newwave-network
+    deploy:
+      resources:
+        limits:
+          cpus: '3.0'
+          memory: 4G
+        reservations:
+          cpus: '1.5'
+          memory: 2G
+    ulimits:
+      memlock:
+        soft: -1
+        hard: -1
+      nofile:
+        soft: 262144
+        hard: 262144
+      nproc:
+        soft: 65536
+        hard: 65536
+    healthcheck:
+      test: ["CMD", "bash", "-c", "echo 'healthcheck passed'"]
+      interval: 30s
+      start_period: 180s
+      timeout: 10s
+      retries: 5
+    security_opt:
+      - seccomp:unconfined
+    shm_size: 1g
+    init: true
+    
+  # Ollama service - COMMENTED
+  # ollama:
+  #   image: ollama/ollama:latest
+  #   container_name: newwave-ollama
+  #   restart: always
+  #   ports:
+  #     - "11434:11434"
+  #   environment:
+  #     - OLLAMA_KEEP_ALIVE=-1
+  #     - OLLAMA_MAX_LOADED_MODELS=1
+  #     - OLLAMA_NUM_PARALLEL=1
+  #     - OLLAMA_FLASH_ATTENTION=1
+  #     - OLLAMA_HOST=0.0.0.0
+  #     - OLLAMA_ORIGINS=*
+  #   volumes:
+  #     - ollama-data:/root/.ollama
+  #     - ./ollama/init-models.sh:/init-models.sh
+  #   entrypoint: ["/bin/sh", "-c", "chmod +x /init-models.sh && ollama serve & sleep 10 && /init-models.sh & wait"]
+  #   deploy:
+  #     resources:
+  #       limits:
+  #         cpus: '1.0'
+  #         memory: 1G
+  #       reservations:
+  #         cpus: '0.5'
+  #         memory: 512M
+  #   networks:
+  #     - newwave-network
+
+  # Chatbot Admin service
+  chatbot_admin:
+    build:
+      context: ./chatbot_admin
+      dockerfile: Dockerfile
+    container_name: newwave-chatbot-admin
+    restart: always
+    ports:
+      - "${CHATBOT_ADMIN_PORT:-17001}:8000"
+    environment:
+      - ENV=${ENV:-dev}
+      - PG_HOST=${PG_HOST:-db-postgres}
+      - PG_PORT=${PG_PORT:-5432}
+      - PG_DB=${PG_DB:-newwave_chatbot}
+      - PG_USER=${PG_USER:-postgres}
+      - PG_PASSWORD=${PG_PASSWORD:-postgres}
+      - SECRET_KEY=${SECRET_KEY:-your_secret_key}
+      - FASTAPI_BASE_URL=${FASTAPI_BASE_URL:-http://backend:8000/api/v1}
+      - PUBLIC_URL=${PUBLIC_URL:-http://${BE_HOST}:17002/api/v1}
+      - MINIO_ENDPOINT=${MINIO_ENDPOINT:-minio:9000}
+      - MINIO_ACCESS_KEY=${MINIO_ACCESS_KEY:-minioadmin}
+      - MINIO_SECRET_KEY=${MINIO_SECRET_KEY:-minioadmin}
+      - MINIO_USE_HTTP=${MINIO_USE_HTTP:-true}
+      - MINIO_BUCKET_NAME=${MINIO_BUCKET_NAME:-newwave-documents}
+      - ROOT_USER=${ROOT_USER:-admin}
+      - ROOT_USER_PASSWORD=${ROOT_USER_PASSWORD:-admin123}
+      - ROOT_USER_EMAIL=${ROOT_USER_EMAIL:-admin@example.com}
+      - EMAIL_HOST_USER=${EMAIL_HOST_USER:-}
+      - EMAIL_HOST_PASSWORD=${EMAIL_HOST_PASSWORD:-}
+      - OTP_SECRET_KEY=${OTP_SECRET_KEY:-your_otp_secret}
+      - OTP_VALIDITY_SECONDS=${OTP_VALIDITY_SECONDS:-30}
+      - OTP_TOLERANCE_WINDOWS=${OTP_TOLERANCE_WINDOWS:-2}
+    volumes:
+      - ./chatbot_admin:/app
+      - ./chatbot_admin/logs:/app/logs
+      - ./chatbot_admin/static:/app/static
+      - ./chatbot_admin/media:/app/media
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - newwave-network
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 512M
+        reservations:
+          cpus: '0.25'
+          memory: 256M
+
+volumes:
+  postgres-data:
+    driver: local
+  milvus-data:
+    driver: local
+  etcd-data:
+    driver: local
+  minio-data:
+    driver: local
+  model-cache:
+    driver: local
+  # ollama-data:
+  #   driver: local
+
+networks:
+  newwave-network:
+    driver: bridge
+    ipam:
+      driver: default
+      config:
+        - subnet: 172.20.0.0/16
+          gateway: 172.20.0.1

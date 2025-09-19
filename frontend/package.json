@@ -1,0 +1,49 @@
+{
+  "name": "base-next-fe",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev --turbopack",
+    "build": "next build",
+    "start": "next start",
+    "start:pm2": "pm2 start ecosystem.config.js --env production",
+    "start:pm2:dev": "pm2 start ecosystem.config.js --env development",
+    "start:pm2:stg": "pm2 start ecosystem.config.js --env staging",
+    "start:pm2:prod": "pm2 start ecosystem.config.js --env production",
+    "stop:pm2": "pm2 stop newwave-frontend",
+    "restart:pm2": "pm2 restart newwave-frontend",
+    "logs:pm2": "pm2 logs newwave-frontend",
+    "lint": "next lint"
+  },
+  "dependencies": {
+    "@hookform/resolvers": "^5.0.1",
+    "@tanstack/react-query": "^5.80.2",
+    "@types/react-syntax-highlighter": "^15.5.13",
+    "axios": "^1.9.0",
+    "clsx": "^2.1.1",
+    "lucide-react": "^0.511.0",
+    "next": "15.3.2",
+    "pm2": "^5.4.2",
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0",
+    "react-hook-form": "^7.57.0",
+    "react-icons": "^5.5.0",
+    "react-markdown": "^10.1.0",
+    "react-syntax-highlighter": "^15.6.1",
+    "react-toastify": "^11.0.5",
+    "tailwind-merge": "^3.3.0",
+    "yup": "^1.6.1"
+  },
+  "devDependencies": {
+    "@eslint/eslintrc": "^3",
+    "@tailwindcss/postcss": "^4",
+    "@tailwindcss/typography": "^0.5.16",
+    "@types/node": "^20",
+    "@types/react": "^19",
+    "@types/react-dom": "^19",
+    "eslint": "^9",
+    "eslint-config-next": "15.3.2",
+    "tailwindcss": "^4",
+    "typescript": "^5"
+  }
+}

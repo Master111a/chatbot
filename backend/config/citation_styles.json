@@ -1,0 +1,17 @@
+{
+    "vi": {
+        "file_reference": " [{number}].[ {title}]({url})",
+        "reference_header": "**Tài liệu tham khảo:**",
+        "url_format": "Tải về: {url}"
+    },
+    "en": {
+        "file_reference": " [{number}].[ {title}]({url})",
+        "reference_header": "**References:**",
+        "url_format": "Download: {url}"
+    },
+    "ja": {
+        "file_reference": " [{number}].[ {title}]({url})",
+        "reference_header": "**参考文献:**",
+        "url_format": "ダウンロード: {url}"
+    }
+}

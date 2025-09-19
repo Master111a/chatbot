@@ -1,0 +1,231 @@
+@import "tailwindcss";
+@plugin '@tailwindcss/typography';
+
+@custom-variant dark (&:where(.dark, .dark *));
+@theme {
+    /* Font Sizes */
+    --text-10: 0.625rem;
+    --text-12: 0.75rem;
+    --text-14: 0.875rem;
+    --text-16: 1rem;
+    --text-18: 1.125rem;
+    --text-20: 1.25rem;
+    --text-24: 1.5rem;
+
+    /* Font Weights */
+    --font-weight-300: 300;
+    --font-weight-400: 400;
+    --font-weight-500: 500;
+    --font-weight-600: 600;
+    --font-weight-700: 700;
+
+    /* Rounded */
+    --radius-8: 0.5rem;
+    --radius-16: 1rem;
+    --radius-28: 1.75rem;
+
+    /* Light Theme Colors */
+    --color-primary: #01c0ea;
+    --color-primary-100: #66edfd;
+    --color-primary-200: #42c2f0;
+
+    --background: #ffffff;
+    --foreground: #212121;
+    --color-sidebar-bg: #f9f9f9;
+    --chat-bg: #ffffff;
+    --message-bg: #ffffff;
+    --message-ai-bg: #f0f0f0;
+    --input-bg: #ffffff;
+    --border-color: #e5e5e5;
+    --text-primary: #171717;
+    --text-secondary: #6b6c7d;
+    --hover-bg: #f0f0f0;
+    --menu-bg: #ffffff;
+
+    --background-message-user: #f4f4f4;
+
+    --button-primary-bg: #66edfd;
+
+    --toastify-toast-background: #fff;
+    --toastify-color-light: #fff;
+    --toastify-text-color-light: #757575;
+}
+
+.dark {
+    /* Dark Theme Colors */
+    --background: #0f172b;
+    --foreground: #ffffff;
+    --color-sidebar-bg: #122241;
+    --chat-bg: #0f172b;
+    --message-bg: #0f172b;
+    --message-ai-bg: #0f172b;
+    --input-bg: #0f172b;
+    --border-color: #0f172b;
+    --text-primary: #ffffff;
+    --text-secondary: #9ca3af;
+    --hover-bg: #0f172b;
+    --menu-bg: #1d293d;
+
+    --background-message-user: #314158;
+
+    --button-primary-bg: #122241;
+
+    --toastify-toast-background: #1e3e62;
+    --toastify-color-light: #1e3e62;
+    --toastify-text-color-light: #ffffff;
+}
+
+.sidebar {
+    background: var(--color-sidebar-bg);
+}
+
+body {
+    background: var(--background);
+    color: var(--foreground);
+    font-family: Arial, Helvetica, sans-serif;
+    transition: background-color 0.3s ease, color 0.3s ease;
+}
+
+.chat-textarea {
+    @apply w-full resize-none overflow-auto p-2 text-sm leading-6;
+    max-height: 185px;
+    min-height: 40px;
+    line-height: 1.5;
+    background-color: white;
+    border: 1px solid #ccc;
+    border-radius: 0.5rem;
+}
+
+.dark ::-webkit-scrollbar-track {
+    background: #1e293b; /* một màu tối rõ hơn nền */
+}
+
+.dark ::-webkit-scrollbar-thumb {
+    background: #475569; /* thumb màu sáng hơn chút */
+}
+
+.dark ::-webkit-scrollbar-thumb:hover {
+    background: #64748b;
+}
+
+@layer utilities {
+    .animate-fadeIn {
+        animation: fadeIn 0.3s ease-in-out;
+    }
+    .animate-slideIn {
+        animation: slideIn 0.3s ease-in-out;
+    }
+    .animate-typing {
+        animation: typing 1s steps(40, end);
+    }
+    .animate-cursor {
+        animation: cursor 0.8s infinite;
+    }
+    .theme-transition {
+        transition: background-color 0.3s ease, color 0.3s ease,
+            border-color 0.3s ease;
+    }
+    .cs-animation-spin {
+        animation: spin 10s linear infinite;
+    }
+}
+
+.loading-text {
+    place-self: center;
+    background: linear-gradient(90deg, #4767c5, #66edfd, #4767c5) -100%/ 200%;
+    /* being excessively careful with compat, 
+	 * though this has been supported unprefixed and 
+	 * in the shorthand across major browsers for a while */
+    -webkit-background-clip: text;
+    background-clip: text;
+    /* use color, don't use -webkit-text-fill-color anymore, 
+	 * was meant to solve a problem we haven't had in years */
+    color: transparent;
+    font: 14px clamp(2em, 10vw, 10em) exo, sans-serif;
+    animation: shimmer 2s linear infinite;
+}
+
+@keyframes shimmer {
+    to {
+        background-position: 100%;
+    }
+}
+
+@keyframes spin {
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+    }
+    to {
+        opacity: 1;
+    }
+}
+
+@keyframes slideIn {
+    from {
+        transform: translateY(20px);
+        opacity: 0;
+    }
+    to {
+        transform: translateY(0);
+        opacity: 1;
+    }
+}
+
+@keyframes typing {
+    from {
+        width: 0;
+    }
+    to {
+        width: 100%;
+    }
+}
+
+@keyframes cursor {
+    0%,
+    100% {
+        border-color: transparent;
+    }
+    50% {
+        border-color: var(--text-primary);
+    }
+}
+
+/* Custom scrollbar */
+::-webkit-scrollbar {
+    width: 8px;
+}
+
+::-webkit-scrollbar-track {
+    background: var(--background);
+}
+
+::-webkit-scrollbar-thumb {
+    background: var(--border-color);
+    border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background: var(--text-secondary);
+}
+
+@keyframes wave {
+    0% {
+        transform: translateY(0);
+    }
+    50% {
+        transform: translateY(-5px);
+    }
+    100% {
+        transform: translateY(0);
+    }
+}
+
+.wave-icon {
+    animation: wave 2s ease-in-out infinite;
+}

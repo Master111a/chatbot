@@ -1,0 +1,288 @@
+{% extends "layouts/base.html" %}
+{% load i18n static %}
+
+{% block title %}{% trans "Thêm tài liệu" %}{% endblock title %}
+
+{% block extrastyle %}
+    {{ block.super }}
+    <link rel="stylesheet" type="text/css" href="{% static "css/forms.css" %}">
+{% endblock extrastyle %}
+
+{% block overlay %}
+  <div class="min-height-300 bg-primary position-absolute w-100"></div>
+{% endblock overlay %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header pb-0">
+                    <div class="d-flex align-items-center">
+                        <h5 class="mb-0">{% trans "Tải lên tài liệu mới" %}</h5>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <form method="post" enctype="multipart/form-data" id="uploadDocumentForm">
+                        {% csrf_token %}
+
+                    {% if form.non_field_errors %}
+                        <div class="alert alert-danger">
+                            {% for error in form.non_field_errors %}
+                                <p>{{ error }}</p>
+                            {% endfor %}
+                        </div>
+                    {% endif %}
+
+                    {% for field in form.visible_fields %}
+                        {% if field.name == 'file' %}
+                            <div class="mb-3">
+                                <label class="form-label">{{ field.label }}</label>
+                                <div id="dropZone" class="drop-zone">
+                                    <i class="fas fa-cloud-upload-alt"></i>
+                                    <h6>Kéo và thả file vào đây</h6>
+                                    <p class="mb-0">hoặc <span class="browse-link">chọn file</span></p>
+                                    <small class="text-muted d-block mt-2">
+                                        Hỗ trợ: PDF, DOC, DOCX, TXT, XLSX, CSV (Tối đa 50MB)
+                                    </small>
+                                </div>
+                                {{ field }}
+                                
+                                <div id="fileList" class="file-list">
+                                    <div class="file-list-header">
+                                        <span>Danh sách file đã chọn (<span id="fileCount">0</span>)</span>
+                                        <button type="button" class="btn btn-sm btn-outline-danger" onclick="clearFiles()">
+                                            <i class="fas fa-trash-alt me-1"></i>Xóa tất cả
+                                        </button>
+                                    </div>
+                                    <div id="fileItems"></div>
+                                </div>
+                            </div>
+                        {% else %}
+                            <div class="mb-3">
+                                <label for="{{ field.id_for_label }}" class="form-label">{{ field.label }}</label>
+                                {{ field }}
+                                {% if field.help_text %}
+                                    <div class="form-text">{{ field.help_text }}</div>
+                                {% endif %}
+                                {% if field.errors %}
+                                    <div class="text-danger">
+                                        {% for error in field.errors %}
+                                            <small>{{ error }}</small>
+                                        {% endfor %}
+                                    </div>
+                                {% endif %}
+                            </div>
+                        {% endif %}
+                    {% endfor %}
+
+                    <div class="mt-3">
+                        <button type="submit" class="btn btn-primary btn-upload" id="submitBtn">
+                            <i class="fas fa-upload me-1"></i>Tải lên
+                        </button>
+                        <a href="{% url 'admin:documents_document_changelist' %}" class="btn btn-secondary">
+                            Hủy
+                        </a>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Upload Progress Modal -->
+<div id="uploadModal" class="upload-modal">
+    <div class="upload-modal-content">
+        <div id="uploadSpinner" class="upload-spinner"></div>
+        <div id="uploadSuccessIcon" class="upload-success-icon">
+            <i class="fas fa-check-circle"></i>
+        </div>
+        <div id="uploadErrorIcon" class="upload-error-icon">
+            <i class="fas fa-exclamation-circle"></i>
+        </div>
+        
+        <h5 id="uploadTitle">Đang tải lên tài liệu...</h5>
+        
+    </div>
+</div>
+</div>
+{% endblock content %}
+
+{% block scripts %}
+{{ block.super }}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const dropZone = document.getElementById('dropZone');
+        const fileInput = document.querySelector('input[type="file"]');
+        const fileList = document.getElementById('fileList');
+        const fileItems = document.getElementById('fileItems');
+        const fileCount = document.getElementById('fileCount');
+        const browseLink = document.querySelector('.browse-link');
+        const form = document.getElementById('uploadDocumentForm');
+        const submitBtn = document.getElementById('submitBtn');
+        
+        // Modal elements
+        const uploadModal = document.getElementById('uploadModal');
+        const uploadSpinner = document.getElementById('uploadSpinner');
+        const uploadSuccessIcon = document.getElementById('uploadSuccessIcon');
+        const uploadErrorIcon = document.getElementById('uploadErrorIcon');
+        const uploadTitle = document.getElementById('uploadTitle');
+
+        let selectedFiles = [];
+
+        // Ẩn input file
+        fileInput.style.display = 'none';
+
+        // Xử lý click
+        dropZone.addEventListener('click', () => fileInput.click());
+
+        // Xử lý chọn file
+        fileInput.addEventListener('change', (e) => {
+            handleFiles(Array.from(e.target.files));
+        });
+
+        // Drag & Drop
+        dropZone.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            dropZone.classList.add('dragover');
+        });
+
+        dropZone.addEventListener('dragleave', () => {
+            dropZone.classList.remove('dragover');
+        });
+
+        dropZone.addEventListener('drop', (e) => {
+            e.preventDefault();
+            dropZone.classList.remove('dragover');
+            handleFiles(Array.from(e.dataTransfer.files));
+        });
+
+        function handleFiles(files) {
+            files.forEach(file => {
+                // Kiểm tra kích thước
+                if (file.size > 50 * 1024 * 1024) {
+                    if (window.toastManager) {
+                        window.toastManager.error(`File "${file.name}" quá lớn (tối đa 50MB)`);
+                    } else {
+                        alert(`File "${file.name}" quá lớn (tối đa 50MB)`);
+                    }
+                    return;
+                }
+
+                // Kiểm tra định dạng
+                const ext = file.name.split('.').pop().toLowerCase();
+                if (!['pdf', 'doc', 'docx', 'txt', 'xlsx', 'csv'].includes(ext)) {
+                    if (window.toastManager) {
+                        window.toastManager.error(`File "${file.name}" không được hỗ trợ`);
+                    } else {
+                        alert(`File "${file.name}" không được hỗ trợ`);
+                    }
+                    return;
+                }
+
+                // Kiểm tra trùng lặp
+                if (!selectedFiles.some(f => f.name === file.name && f.size === file.size)) {
+                    selectedFiles.push(file);
+                }
+            });
+
+            updateFileList();
+            updateFileInput();
+        }
+
+        function updateFileList() {
+            if (selectedFiles.length > 0) {
+                fileList.style.display = 'block';
+                fileCount.textContent = selectedFiles.length;
+
+                fileItems.innerHTML = '';
+                selectedFiles.forEach((file, index) => {
+                    const ext = file.name.split('.').pop().toLowerCase();
+                    const item = document.createElement('div');
+                    item.className = 'file-item';
+                    item.innerHTML = `
+                        <div class="file-icon ${ext}">
+                            <i class="fas fa-file${getFileIcon(ext)}"></i>
+                        </div>
+                        <div class="file-info">
+                            <div class="file-name">${file.name}</div>
+                            <div class="file-size">${formatFileSize(file.size)}</div>
+                        </div>
+                        <div class="file-remove" onclick="removeFile(${index})">
+                            <i class="fas fa-times"></i>
+                        </div>
+                    `;
+                    fileItems.appendChild(item);
+                });
+            } else {
+                fileList.style.display = 'none';
+            }
+        }
+
+        function updateFileInput() {
+            const dt = new DataTransfer();
+            selectedFiles.forEach(file => dt.items.add(file));
+            fileInput.files = dt.files;
+        }
+
+        function getFileIcon(ext) {
+            const icons = {
+                'pdf': '-pdf',
+                'doc': '-word', 'docx': '-word',
+                'txt': '-alt',
+                'xlsx': '-excel', 'csv': '-csv'
+            };
+            return icons[ext] || '';
+        }
+
+        function formatFileSize(bytes) {
+            if (bytes === 0) return '0 Bytes';
+            const k = 1024;
+            const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+            const i = Math.floor(Math.log(bytes) / Math.log(k));
+            return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+        }
+
+        // Modal functions
+        function showUploadModal() {
+            uploadModal.style.display = 'block';
+            uploadSpinner.style.display = 'block';
+            uploadSuccessIcon.style.display = 'none';
+            uploadErrorIcon.style.display = 'none';
+            uploadTitle.textContent = 'Đang tải lên tài liệu...';
+            uploadTitle.className = '';
+        }
+
+        // Global functions
+        window.removeFile = function(index) {
+            selectedFiles.splice(index, 1);
+            updateFileList();
+            updateFileInput();
+        };
+
+        window.clearFiles = function() {
+            selectedFiles = [];
+            updateFileList();
+            updateFileInput();
+        };
+
+        // Form submission
+        form.addEventListener('submit', function(e) {
+            if (selectedFiles.length === 0) {
+                if (window.toastManager) {
+                    window.toastManager.error('Vui lòng chọn ít nhất một file');
+                } else {
+                    alert('Vui lòng chọn ít nhất một file');
+                }
+                e.preventDefault();
+                return;
+            }
+
+            submitBtn.disabled = true;
+            submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i>Đang tải lên...';
+            showUploadModal();
+
+        });
+    });
+</script>
+{% endblock scripts %}

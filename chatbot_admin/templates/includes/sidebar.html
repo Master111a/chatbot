@@ -1,0 +1,46 @@
+{% load i18n static admin_argon %}
+
+<aside class="sidenav navbar navbar-vertical navbar-expand-xs bg-white border-0 border-radius-xl shadow-sm my-3 fixed-start ms-4" id="sidenav-main">
+    <div class="sidenav-header d-flex align-items-center justify-content-between px-3">
+        <a class="navbar-brand m-0 d-flex align-items-center" href="/admin/users/user">
+            <img src="{% static 'img/nws1.png' %}" class="navbar-brand-img h-100" alt="main_logo" style="max-height: 35px;">
+            <span class="ms-2 font-weight-bold text-primary" style="font-size: 1.1rem;">Admin ChatBot</span>
+        </a>
+        <i class="fas fa-times p-2 cursor-pointer text-secondary d-xl-none" aria-hidden="true" id="iconSidenav"></i>
+    </div>
+    <hr class="horizontal dark mt-0 mb-2">
+
+    <div class="collapse navbar-collapse w-auto px-2" id="sidenav-collapse-main" style="height: calc(100vh - 150px); overflow-y: auto;">
+        <ul class="navbar-nav">
+            {% admin_get_menu as app_list %}
+            {% if app_list %}
+                {% for app in app_list %}
+                    {% if app.has_perms and not app.pinned and app.app_label not in "auth,sites" %}
+                        <li class="nav-item mt-2">
+                            <div class="ps-3 text-uppercase text-xs text-secondary font-weight-bolder opacity-8 mb-1 d-flex align-items-center">
+                                <i class="{{ app.icon|default:'fas fa-folder-open' }} me-2 text-primary opacity-10" style="font-size: 0.9rem;"></i>
+                                <span>{{ app.label }}</span>
+                            </div>
+
+                            {% if app.models %}
+                                <ul class="nav flex-column ms-1">
+                                    {% for model in app.models %}
+                                        {% if model.url %}
+                                            <li class="nav-item">
+                                                <a class="nav-link d-flex align-items-center py-2 ps-4 pe-2 {% if model.url in request.path %}active bg-gradient-primary text-white shadow-sm rounded-lg{% else %}text-dark{% endif %}"
+                                                   href="{{ model.url }}">
+                                                    <i class="{{ app.icon }} e me-2 text-sm opacity-6" style="font-size: 0.9rem;"></i>
+                                                    <span class="nav-link-text" style="font-size: 0.9rem;">{{ model.label }}</span>
+                                                </a>
+                                            </li>
+                                        {% endif %}
+                                    {% endfor %}
+                                </ul>
+                            {% endif %}
+                        </li>
+                    {% endif %}
+                {% endfor %}
+            {% endif %}
+        </ul>
+    </div>
+</aside>
