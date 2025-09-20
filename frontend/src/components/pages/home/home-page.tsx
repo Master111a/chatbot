@@ -5,7 +5,7 @@ import { ButtonZy } from "@/components/ui/button-zy";
 import appPath from "@/constants/app-path";
 import { useChat } from "@/contexts/chat-context";
 import { useCreateSession } from "@/services/chat/create-session-chat";
-import { Loader2, Ship } from "lucide-react";
+import { Loader2, Search } from "lucide-react";
 import { GiWaveSurfer } from "react-icons/gi";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
@@ -79,7 +79,7 @@ const HomePage = () => {
                                     className="text-white animate-spin"
                                 />
                             ) : (
-                                <Ship size={20} className="text-white" />
+                                <Search size={20} className="text-white" />
                             )}
                         </ButtonZy>
                     </form>

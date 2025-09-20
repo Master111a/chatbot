@@ -229,3 +229,42 @@ body {
 .wave-icon {
     animation: wave 2s ease-in-out infinite;
 }
+.prose {
+    color: var(--tw-prose-body);
+    --tw-prose-body: oklch(87.2% 0.01 258.338);
+    --tw-prose-headings: #fff;
+    --tw-prose-lead: oklch(70.7% 0.022 261.325);
+    --tw-prose-links: #fff;
+    --tw-prose-bold: #fff;
+    --tw-prose-counters: oklch(70.7% 0.022 261.325);
+    --tw-prose-bullets: oklch(44.6% 0.03 256.802);
+    --tw-prose-hr: oklch(37.3% 0.034 259.733);
+    --tw-prose-quotes: oklch(96.7% 0.003 264.542);
+    --tw-prose-quote-borders: oklch(37.3% 0.034 259.733);
+    --tw-prose-captions: oklch(70.7% 0.022 261.325);
+    --tw-prose-kbd: #fff;
+    --tw-prose-kbd-shadows: 255 255 255;
+    --tw-prose-code: #fff;
+    --tw-prose-pre-code: oklch(87.2% 0.01 258.338);
+    --tw-prose-pre-bg: #00000080;
+    --tw-prose-th-borders: oklch(44.6% 0.03 256.802);
+    --tw-prose-td-borders: oklch(37.3% 0.034 259.733);
+    --tw-prose-invert-body: oklch(87.2% 0.01 258.338);
+    --tw-prose-invert-headings: #fff;
+    --tw-prose-invert-lead: oklch(70.7% 0.022 261.325);
+    --tw-prose-invert-links: #fff;
+    --tw-prose-invert-bold: #fff;
+    --tw-prose-invert-counters: oklch(70.7% 0.022 261.325);
+    --tw-prose-invert-bullets: oklch(44.6% 0.03 256.802);
+    --tw-prose-invert-hr: oklch(37.3% 0.034 259.733);
+    --tw-prose-invert-quotes: oklch(96.7% 0.003 264.542);
+    --tw-prose-invert-quote-borders: oklch(37.3% 0.034 259.733);
+    --tw-prose-invert-captions: oklch(70.7% 0.022 261.325);
+    --tw-prose-invert-kbd: #fff;
+    --tw-prose-invert-kbd-shadows: 255 255 255;
+    --tw-prose-invert-code: #fff;
+    --tw-prose-invert-pre-code: oklch(87.2% 0.01 258.338);
+    --tw-prose-invert-pre-bg: #00000080;
+    --tw-prose-invert-th-borders: oklch(44.6% 0.03 256.802);
+    --tw-prose-invert-td-borders: oklch(37.3% 0.034 259.733);
+}

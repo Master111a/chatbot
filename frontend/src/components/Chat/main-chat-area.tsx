@@ -27,7 +27,7 @@ const MainChatArea = ({ children }: MainChatAreaProps) => {
             }}>
             <div className="relative z-[2]">
                 <Topbar />
-                <div className="pl-[15px]">{children}</div>
+                <div className="w-full">{children}</div>
             </div>
             {theme !== "light" && (
                 <div className="bg-overlay absolute top-0 bottom-0 left-0 right-0 bg-[var(--button-primary-bg)]/90"></div>
